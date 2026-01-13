@@ -159,35 +159,35 @@ class BotPersonality {
         // Personality parameters
         switch (type) {
             case BOT_PERSONALITIES.TIGHT_AGGRESSIVE:
-                this.preFlopThreshold = 0.55; // Only plays strong hands
+                this.preFlopThreshold = 0.35; // Only plays strong hands
                 this.aggressionFactor = 3.5; // Raises often
                 this.bluffFrequency = 0.12;
                 this.foldToPressure = 0.3;
                 break;
 
             case BOT_PERSONALITIES.LOOSE_AGGRESSIVE:
-                this.preFlopThreshold = 0.25; // Plays many hands
+                this.preFlopThreshold = 0.15; // Plays many hands
                 this.aggressionFactor = 4.0; // Very aggressive
                 this.bluffFrequency = 0.20;
                 this.foldToPressure = 0.25;
                 break;
 
             case BOT_PERSONALITIES.TIGHT_PASSIVE:
-                this.preFlopThreshold = 0.60; // Very selective
+                this.preFlopThreshold = 0.40; // Very selective
                 this.aggressionFactor = 1.2; // Rarely raises
                 this.bluffFrequency = 0.03;
                 this.foldToPressure = 0.55;
                 break;
 
             case BOT_PERSONALITIES.LOOSE_PASSIVE:
-                this.preFlopThreshold = 0.20; // Plays almost anything
+                this.preFlopThreshold = 0.12; // Plays almost anything
                 this.aggressionFactor = 1.0; // Calls more than raises
                 this.bluffFrequency = 0.05;
                 this.foldToPressure = 0.40;
                 break;
 
             case BOT_PERSONALITIES.ADAPTIVE:
-                this.preFlopThreshold = 0.40;
+                this.preFlopThreshold = 0.25;
                 this.aggressionFactor = 2.5;
                 this.bluffFrequency = 0.10;
                 this.foldToPressure = 0.35;
@@ -301,7 +301,7 @@ class BotDecisionEngine {
         // Strong hand - decide between call and raise
         if (callAmount === 0) {
             // No bet yet - check or bet
-            if (Math.random() < handStrength * this.personality.aggressionFactor / 4) {
+            if (Math.random() < handStrength * this.personality.aggressionFactor * 0.15) {
                 const betSize = this.calculateBetSize(potSize, stack, handStrength);
                 return { action: 'bet', amount: betSize };
             }
@@ -309,7 +309,7 @@ class BotDecisionEngine {
         }
 
         // Facing a bet
-        const shouldRaise = Math.random() < (handStrength - adjustedThreshold) * this.personality.aggressionFactor / 3;
+        const shouldRaise = Math.random() < (handStrength - adjustedThreshold + 0.2) * this.personality.aggressionFactor * 0.2;
 
         if (shouldRaise && stack > callAmount * 2) {
             const raiseSize = this.calculateRaiseSize(currentBet, potSize, stack, handStrength);
@@ -343,7 +343,7 @@ class BotDecisionEngine {
             }
 
             // Strong hand or good odds - raise or call
-            if (effectiveStrength > 0.65 && Math.random() < this.personality.aggressionFactor / 5) {
+            if (effectiveStrength > 0.55 && Math.random() < this.personality.aggressionFactor * 0.25) {
                 const raiseSize = this.calculateRaiseSize(currentBet, potSize, stack, effectiveStrength);
                 if (raiseSize <= stack) {
                     return { action: 'raise', amount: raiseSize };
@@ -362,7 +362,7 @@ class BotDecisionEngine {
         }
 
         // No bet to us - check or bet
-        if (effectiveStrength > 0.5 && Math.random() < this.personality.aggressionFactor / 4) {
+        if (effectiveStrength > 0.4 && Math.random() < this.personality.aggressionFactor * 0.2) {
             const betSize = this.calculateBetSize(potSize, stack, effectiveStrength);
             return { action: 'bet', amount: betSize };
         }
