@@ -86,7 +86,9 @@ class TexasHoldemGame {
         this.eventCallback = eventCallback || (() => { });
         this.waitingForHumanAction = false;
         this.currentBets = {};
+        this.currentBets = {};
         this.playersActedThisRound = {};
+        this.bettingRoundInProgress = false; // Guard against race conditions
     }
 
     initializePlayers() {
@@ -190,6 +192,7 @@ class TexasHoldemGame {
 
     startBettingRound() {
         // Reset action tracking for this betting round
+        this.bettingRoundInProgress = true;
         this.playersActedThisRound = {};
         for (let player of this.players) {
             this.playersActedThisRound[player.id] = false;
@@ -212,10 +215,13 @@ class TexasHoldemGame {
         }
 
         this.lastRaiserIndex = -1;
+        this.lastRaiserIndex = -1;
         this.processNextAction();
     }
 
     processNextAction() {
+        if (!this.bettingRoundInProgress) return; // Stop if round ended
+
         const activePlayers = this.players.filter(p => p.canAct());
 
         if (activePlayers.length === 0) {
@@ -385,11 +391,10 @@ class TexasHoldemGame {
     isBettingRoundComplete() {
         const activePlayers = this.players.filter(p => p.canAct());
 
-        if (activePlayers.length === 0) return true;
-
         // Check if all active players have acted at least once
         for (let player of this.players) {
             if (player.canAct() && !this.playersActedThisRound[player.id]) {
+                // console.log(`Waiting for ${player.name} to act`); 
                 return false;
             }
         }
@@ -397,7 +402,9 @@ class TexasHoldemGame {
         // Check if all active players have matched the current bet
         for (let player of this.players) {
             if (player.canAct()) {
-                if (this.currentBets[player.id] < this.currentBet) {
+                const playerBet = this.currentBets[player.id] || 0;
+                if (playerBet < this.currentBet) {
+                    // console.log(`Waiting for ${player.name} to match bet (Has: ${playerBet}, Needs: ${this.currentBet})`);
                     return false;
                 }
             }
@@ -407,6 +414,9 @@ class TexasHoldemGame {
     }
 
     completeBettingRound() {
+        if (!this.bettingRoundInProgress) return; // Already completed?
+        this.bettingRoundInProgress = false;
+
         // Create pots from current bets
         this.potManager.createPots(this.players, this.currentBets);
 
