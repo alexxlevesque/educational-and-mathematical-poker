@@ -282,7 +282,7 @@ class UIController {
         });
     }
 
-    showHandResult(winnings, handEvaluations) {
+    showHandResult(results, handEvaluations) {
         let html = '<div style="margin-bottom: 20px;">';
 
         // Show each player's hand
@@ -290,14 +290,22 @@ class UIController {
             if (player.folded) continue;
 
             const evaluation = handEvaluations[player.id];
-            const won = winnings[player.id] || 0;
+
+            // Find results for this player
+            const playerResults = results.filter(r => r.playerId === player.id);
+            const totalWon = playerResults.filter(r => r.type === 'win').reduce((sum, r) => sum + r.amount, 0);
+            const totalReturned = playerResults.filter(r => r.type === 'return').reduce((sum, r) => sum + r.amount, 0);
 
             html += `<div style="margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px;">`;
             html += `<div style="font-weight: 600; color: #fbbf24; margin-bottom: 4px;">${player.name}</div>`;
             html += `<div style="color: rgba(255,255,255,0.8);">${HandEvaluator.getHandDescription(evaluation)}</div>`;
 
-            if (won > 0) {
-                html += `<div style="font-weight: 700; color: #10b981; margin-top: 4px;">Won $${won}</div>`;
+            if (totalWon > 0) {
+                html += `<div style="font-weight: 700; color: #10b981; margin-top: 4px;">Won $${totalWon}</div>`;
+            }
+
+            if (totalReturned > 0) {
+                html += `<div style="font-weight: 600; color: #60a5fa; margin-top: 4px; font-size: 0.9em;">(Returned uncalled bet: $${totalReturned})</div>`;
             }
 
             html += `</div>`;
@@ -416,7 +424,7 @@ class UIController {
                 break;
 
             case 'potsDistributed':
-                this.showHandResult(data.winnings, data.handEvaluations);
+                this.showHandResult(data.results, data.handEvaluations);
                 this.updateAllPlayers();
                 break;
 

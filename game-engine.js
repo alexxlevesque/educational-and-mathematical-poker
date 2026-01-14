@@ -98,44 +98,44 @@ class HandEvaluator {
   static findBest5CardHand(cards) {
     const combinations = this.getCombinations(cards, 5);
     let bestHand = null;
-    
+
     for (let combo of combinations) {
       const hand = this.evaluate5Cards(combo);
       if (!bestHand || this.compareHands(hand, bestHand) > 0) {
         bestHand = hand;
       }
     }
-    
+
     return bestHand;
   }
 
   static getCombinations(arr, size) {
     const result = [];
-    
+
     const combine = (start, combo) => {
       if (combo.length === size) {
         result.push([...combo]);
         return;
       }
-      
+
       for (let i = start; i < arr.length; i++) {
         combo.push(arr[i]);
         combine(i + 1, combo);
         combo.pop();
       }
     };
-    
+
     combine(0, []);
     return result;
   }
 
   static evaluate5Cards(cards) {
     const sorted = [...cards].sort((a, b) => b.value - a.value);
-    
+
     const isFlush = this.checkFlush(sorted);
     const straightValue = this.checkStraight(sorted);
     const groups = this.groupByRank(sorted);
-    
+
     // Royal Flush
     if (isFlush && straightValue === 14) {
       return {
@@ -145,7 +145,7 @@ class HandEvaluator {
         cards: sorted
       };
     }
-    
+
     // Straight Flush
     if (isFlush && straightValue) {
       return {
@@ -155,7 +155,7 @@ class HandEvaluator {
         cards: sorted
       };
     }
-    
+
     // Four of a Kind
     if (groups.length === 2 && groups[0].length === 4) {
       return {
@@ -165,7 +165,7 @@ class HandEvaluator {
         cards: sorted
       };
     }
-    
+
     // Full House
     if (groups.length === 2 && groups[0].length === 3 && groups[1].length === 2) {
       return {
@@ -175,7 +175,7 @@ class HandEvaluator {
         cards: sorted
       };
     }
-    
+
     // Flush
     if (isFlush) {
       return {
@@ -185,7 +185,7 @@ class HandEvaluator {
         cards: sorted
       };
     }
-    
+
     // Straight
     if (straightValue) {
       return {
@@ -195,7 +195,7 @@ class HandEvaluator {
         cards: sorted
       };
     }
-    
+
     // Three of a Kind
     if (groups.length === 3 && groups[0].length === 3) {
       return {
@@ -205,7 +205,7 @@ class HandEvaluator {
         cards: sorted
       };
     }
-    
+
     // Two Pair
     if (groups.length === 3 && groups[0].length === 2 && groups[1].length === 2) {
       return {
@@ -215,7 +215,7 @@ class HandEvaluator {
         cards: sorted
       };
     }
-    
+
     // Pair
     if (groups.length === 4 && groups[0].length === 2) {
       return {
@@ -225,7 +225,7 @@ class HandEvaluator {
         cards: sorted
       };
     }
-    
+
     // High Card
     return {
       ranking: HAND_RANKINGS.HIGH_CARD,
@@ -242,7 +242,7 @@ class HandEvaluator {
 
   static checkStraight(cards) {
     const values = cards.map(c => c.value).sort((a, b) => b - a);
-    
+
     // Check for regular straight
     let isStraight = true;
     for (let i = 0; i < values.length - 1; i++) {
@@ -251,29 +251,29 @@ class HandEvaluator {
         break;
       }
     }
-    
+
     if (isStraight) {
       return values[0]; // Return high card of straight
     }
-    
+
     // Check for A-2-3-4-5 (wheel)
     if (values[0] === 14 && values[1] === 5 && values[2] === 4 && values[3] === 3 && values[4] === 2) {
       return 5; // In a wheel, the straight is to 5
     }
-    
+
     return null;
   }
 
   static groupByRank(cards) {
     const groups = {};
-    
+
     for (let card of cards) {
       if (!groups[card.value]) {
         groups[card.value] = [];
       }
       groups[card.value].push(card);
     }
-    
+
     // Sort groups by size (descending), then by value (descending)
     return Object.values(groups).sort((a, b) => {
       if (b.length !== a.length) {
@@ -288,24 +288,24 @@ class HandEvaluator {
     if (hand1.ranking !== hand2.ranking) {
       return hand1.ranking - hand2.ranking;
     }
-    
+
     // Same ranking, compare values (kickers)
     for (let i = 0; i < Math.max(hand1.values.length, hand2.values.length); i++) {
       const val1 = hand1.values[i] || 0;
       const val2 = hand2.values[i] || 0;
-      
+
       if (val1 !== val2) {
         return val1 - val2;
       }
     }
-    
+
     // Hands are identical
     return 0;
   }
 
   static getHandDescription(hand) {
     const highCard = RANKS[hand.values[0] - 2];
-    
+
     switch (hand.ranking) {
       case HAND_RANKINGS.ROYAL_FLUSH:
         return 'Royal Flush';
@@ -348,30 +348,30 @@ class PotManager {
 
   createPots(players, currentBets) {
     this.pots = [];
-    
+
     // Get all unique bet amounts (sorted ascending)
     const betLevels = [...new Set(Object.values(currentBets))].sort((a, b) => a - b);
-    
+
     if (betLevels.length === 0 || betLevels[0] === 0) {
       return;
     }
-    
+
     let previousLevel = 0;
-    
+
     for (let level of betLevels) {
       const pot = {
         amount: 0,
         eligiblePlayers: []
       };
-      
+
       // Add chips from each player who bet at least this level
       for (let player of players) {
         const playerBet = currentBets[player.id] || 0;
-        
+
         if (playerBet >= level) {
           const contribution = Math.min(level, playerBet) - previousLevel;
           pot.amount += contribution;
-          
+
           // Player is eligible if they contributed and haven't folded
           if (!player.folded && playerBet >= level) {
             if (!pot.eligiblePlayers.includes(player.id)) {
@@ -380,11 +380,11 @@ class PotManager {
           }
         }
       }
-      
+
       if (pot.amount > 0) {
         this.pots.push(pot);
       }
-      
+
       previousLevel = level;
     }
   }
@@ -394,29 +394,41 @@ class PotManager {
   }
 
   distributePots(players, handEvaluations) {
-    const winnings = {};
-    
+    const operations = []; // Changed from object to array of operations to support reliable ordering
+
     for (let pot of this.pots) {
       // Find eligible players for this pot
-      const eligiblePlayers = players.filter(p => 
+      const eligiblePlayers = players.filter(p =>
         pot.eligiblePlayers.includes(p.id) && !p.folded
       );
-      
+
       if (eligiblePlayers.length === 0) continue;
-      
+
+      // START CHANGE: Check for uncalled bet refund
+      if (eligiblePlayers.length === 1) {
+        operations.push({
+          playerId: eligiblePlayers[0].id,
+          amount: pot.amount,
+          type: 'return',
+          hand: null
+        });
+        continue;
+      }
+      // END CHANGE
+
       // Find winner(s) among eligible players
       let bestHand = null;
       let winners = [];
-      
+
       for (let player of eligiblePlayers) {
         const playerHand = handEvaluations[player.id];
-        
+
         if (!bestHand) {
           bestHand = playerHand;
           winners = [player];
         } else {
           const comparison = HandEvaluator.compareHands(playerHand, bestHand);
-          
+
           if (comparison > 0) {
             // New best hand
             bestHand = playerHand;
@@ -427,26 +439,30 @@ class PotManager {
           }
         }
       }
-      
+
       // Split pot among winners
       const share = Math.floor(pot.amount / winners.length);
       const remainder = pot.amount % winners.length;
-      
+
       for (let i = 0; i < winners.length; i++) {
         const playerId = winners[i].id;
-        if (!winnings[playerId]) {
-          winnings[playerId] = 0;
-        }
-        winnings[playerId] += share;
-        
+        let amount = share;
+
         // Give remainder to first winner (closest to dealer button)
         if (i === 0) {
-          winnings[playerId] += remainder;
+          amount += remainder;
         }
+
+        operations.push({
+          playerId: playerId,
+          amount: amount,
+          type: 'win',
+          hand: handEvaluations[playerId]
+        });
       }
     }
-    
-    return winnings;
+
+    return operations;
   }
 }
 

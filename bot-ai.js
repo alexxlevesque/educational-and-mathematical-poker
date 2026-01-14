@@ -343,7 +343,7 @@ class BotDecisionEngine {
             }
 
             // Strong hand or good odds - raise or call
-            if (effectiveStrength > 0.55 && Math.random() < this.personality.aggressionFactor * 0.25) {
+            if (effectiveStrength > 0.45 && Math.random() < this.personality.aggressionFactor * 0.35) {
                 const raiseSize = this.calculateRaiseSize(currentBet, potSize, stack, effectiveStrength);
                 if (raiseSize <= stack) {
                     return { action: 'raise', amount: raiseSize };
@@ -362,7 +362,7 @@ class BotDecisionEngine {
         }
 
         // No bet to us - check or bet
-        if (effectiveStrength > 0.4 && Math.random() < this.personality.aggressionFactor * 0.2) {
+        if (effectiveStrength > 0.4 && Math.random() < this.personality.aggressionFactor * 0.3) {
             const betSize = this.calculateBetSize(potSize, stack, effectiveStrength);
             return { action: 'bet', amount: betSize };
         }

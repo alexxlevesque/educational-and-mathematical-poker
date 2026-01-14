@@ -371,6 +371,8 @@ class TexasHoldemGame {
 
         this.emit('actionProcessed', { player, action, amount });
 
+        this.validateGameState();
+
         this.moveToNextPlayer();
     }
 
@@ -489,14 +491,16 @@ class TexasHoldemGame {
         this.emit('showdown', { players: activePlayers, handEvaluations });
 
         // Distribute pots
-        const winnings = this.potManager.distributePots(this.players, handEvaluations);
+        const results = this.potManager.distributePots(this.players, handEvaluations);
 
-        for (let playerId in winnings) {
-            const player = this.players.find(p => p.id === parseInt(playerId));
-            player.win(winnings[playerId]);
+        for (let result of results) {
+            const player = this.players.find(p => p.id === result.playerId);
+            player.win(result.amount);
         }
 
-        this.emit('potsDistributed', { winnings, handEvaluations });
+        this.emit('potsDistributed', { results, handEvaluations });
+
+        this.validateGameState();
 
         setTimeout(() => this.completeHand(), 3000);
     }
@@ -604,6 +608,45 @@ class TexasHoldemGame {
         const human = this.players[0];
         this.waitingForHumanAction = false;
         this.processPlayerAction(human, PLAYER_ACTIONS.ALL_IN, human.stack);
+    }
+
+    validateGameState() {
+        // 1. Verify total chips in play
+        let currentTotal = 0;
+
+        // Count chips in stacks
+        for (let player of this.players) {
+            currentTotal += player.stack;
+        }
+
+        // Count chips in current bets
+        const currentBetsTotal = Object.values(this.currentBets).reduce((a, b) => a + b, 0);
+        currentTotal += currentBetsTotal;
+
+        // Count chips in pots
+        currentTotal += this.potManager.getTotalPot();
+
+        // Check if total matches starting total (6 players * 1000 = 6000)
+        // Note: active implementations might have different starting stacks, 
+        // so we ideally should track initial total. For now assuming 6000.
+        const EXPECTED_TOTAL = 6000;
+
+        if (currentTotal !== EXPECTED_TOTAL) {
+            console.error(`INTEGRITY ERROR: Chip count mismatch! Expected ${EXPECTED_TOTAL}, found ${currentTotal}`);
+            this.emit('integrityError', {
+                type: 'CHIP_MISMATCH',
+                message: `Expected ${EXPECTED_TOTAL}, found ${currentTotal}`
+            });
+        }
+
+        // 2. Verify all-in state consistency
+        for (let player of this.players) {
+            if (player.stack === 0 && !player.allIn && !player.folded) {
+                // Auto-correct state but warn
+                console.warn(`State warning: Player ${player.name} has 0 stack but not marked all-in. Correcting.`);
+                player.allIn = true;
+            }
+        }
     }
 }
 
